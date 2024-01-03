@@ -1,40 +1,40 @@
 'use strict';
 
-let gl;                 
-let surface;            
-let shProgram;          
-let spaceball;          
+let gl;
+let surface;
+let shaderProgram;
+let spaceball;
 
-function deg2rad(angle) {
+function degreesToRadians(angle) {
     return angle * Math.PI / 180;
 }
 
 class Model {
     constructor(name) {
         this.name = name;
-        this.iVertexBuffer = gl.createBuffer();
-        this.iNormalBuffer = gl.createBuffer();
+        this.vertexBuffer = gl.createBuffer();
+        this.normalBuffer = gl.createBuffer();
         this.count = 0;
     }
 
     bufferData(vertices, normals) {
-        gl.bindBuffer(gl.ARRAY_BUFFER, this.iVertexBuffer);
+        gl.bindBuffer(gl.ARRAY_BUFFER, this.vertexBuffer);
         gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(vertices), gl.STREAM_DRAW);
 
-        gl.bindBuffer(gl.ARRAY_BUFFER, this.iNormalBuffer);
+        gl.bindBuffer(gl.ARRAY_BUFFER, this.normalBuffer);
         gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(normals), gl.STREAM_DRAW);
 
         this.count = vertices.length / 3;
     }
 
     draw() {
-        gl.bindBuffer(gl.ARRAY_BUFFER, this.iVertexBuffer);
-        gl.vertexAttribPointer(shProgram.iAttribVertex, 3, gl.FLOAT, false, 0, 0);
-        gl.enableVertexAttribArray(shProgram.iAttribVertex);
+        gl.bindBuffer(gl.ARRAY_BUFFER, this.vertexBuffer);
+        gl.vertexAttribPointer(shaderProgram.vertexAttrib, 3, gl.FLOAT, false, 0, 0);
+        gl.enableVertexAttribArray(shaderProgram.vertexAttrib);
 
-        gl.bindBuffer(gl.ARRAY_BUFFER, this.iNormalBuffer);
-        gl.vertexAttribPointer(shProgram.iAttribNormal, 3, gl.FLOAT, true, 0, 0);
-        gl.enableVertexAttribArray(shProgram.iAttribNormal);
+        gl.bindBuffer(gl.ARRAY_BUFFER, this.normalBuffer);
+        gl.vertexAttribPointer(shaderProgram.normalAttrib, 3, gl.FLOAT, true, 0, 0);
+        gl.enableVertexAttribArray(shaderProgram.normalAttrib);
 
         gl.drawArrays(gl.TRIANGLES, 0, this.count);
     }
@@ -43,20 +43,20 @@ class Model {
 class ShaderProgram {
     constructor(name, program) {
         this.name = name;
-        this.prog = program;
-        this.iAttribVertex = -1;
-        this.iAttribNormal = -1;
-        this.iColor = -1;
-        this.iModelViewProjectionMatrix = -1;
-        this.iNormalMatrix = -1;
-        this.iLDir = -1;
-        this.iLPos = -1;
-        this.iLimit = -1;
-        this.iEasing = -1;
+        this.program = program;
+        this.vertexAttrib = -1;
+        this.normalAttrib = -1;
+        this.colorUniform = -1;
+        this.modelViewProjectionMatrixUniform = -1;
+        this.normalMatrixUniform = -1;
+        this.lightDirectionUniform = -1;
+        this.lightPositionUniform = -1;
+        this.limitUniform = -1;
+        this.easingUniform = -1;
     }
 
     use() {
-        gl.useProgram(this.prog);
+        gl.useProgram(this.program);
     }
 }
 
@@ -64,23 +64,23 @@ function draw() {
     gl.clearColor(0, 0, 0, 1);
     gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
 
-    let projection = m4.perspective(Math.PI / 8, 1, 8, 20);
-    let modelView = spaceball.getViewMatrix();
+    let projectionMatrix = m4.perspective(Math.PI / 8, 1, 8, 20);
+    let modelViewMatrix = spaceball.getViewMatrix();
     let rotateToPointZero = m4.axisRotation([0.707, 0.707, 0], 0.0);
     let translateToPointZero = m4.translation(0, 0, -10);
 
-    let matAccum0 = m4.multiply(rotateToPointZero, modelView);
-    let matAccum1 = m4.multiply(translateToPointZero, matAccum0);
+    let modelViewMatrixAccumulated0 = m4.multiply(rotateToPointZero, modelViewMatrix);
+    let modelViewMatrixAccumulated1 = m4.multiply(translateToPointZero, modelViewMatrixAccumulated0);
 
-    let modelViewProjection = m4.multiply(projection, matAccum1);
-    const normal = m4.identity();
-    m4.inverse(modelView, normal);
-    m4.transpose(normal, normal);
+    let modelViewProjectionMatrix = m4.multiply(projectionMatrix, modelViewMatrixAccumulated1);
+    const normalMatrix = m4.identity();
+    m4.inverse(modelViewMatrix, normalMatrix);
+    m4.transpose(normalMatrix, normalMatrix);
 
-    gl.uniformMatrix4fv(shProgram.iNormalMatrix, false, normal);
-    gl.uniformMatrix4fv(shProgram.iModelViewProjectionMatrix, false, modelViewProjection);
+    gl.uniformMatrix4fv(shaderProgram.normalMatrixUniform, false, normalMatrix);
+    gl.uniformMatrix4fv(shaderProgram.modelViewProjectionMatrixUniform, false, modelViewProjectionMatrix);
 
-    gl.uniform4fv(shProgram.iColor, [1, 1, 0, 1]);
+    gl.uniform4fv(shaderProgram.colorUniform, [1, 1, 0, 1]);
     let dx = parseFloat(document.getElementById('dx').value);
     let dy = parseFloat(document.getElementById('dy').value);
     let dz = parseFloat(document.getElementById('dz').value);
@@ -88,17 +88,17 @@ function draw() {
     let py = parseFloat(document.getElementById('py').value);
     let pz = parseFloat(document.getElementById('pz').value);
 
-    gl.uniform3fv(shProgram.iLDir, [dx, dy, dz]);
-    gl.uniform3fv(shProgram.iLPos, [px, py, pz]);
-    gl.uniform1f(shProgram.iLimit, parseFloat(document.getElementById('lim').value));
-    gl.uniform1f(shProgram.iEasing, parseFloat(document.getElementById('ease').value));
+    gl.uniform3fv(shaderProgram.lightDirectionUniform, [dx, dy, dz]);
+    gl.uniform3fv(shaderProgram.lightPositionUniform, [px, py, pz]);
+    gl.uniform1f(shaderProgram.limitUniform, parseFloat(document.getElementById('lim').value));
+    gl.uniform1f(shaderProgram.easingUniform, parseFloat(document.getElementById('ease').value));
 
     surface.draw();
 }
 
-function drawe() {
+function drawLoop() {
     draw();
-    window.requestAnimationFrame(drawe);
+    window.requestAnimationFrame(drawLoop);
 }
 
 function createSurfaceData() {
@@ -181,19 +181,19 @@ function createSurfaceData() {
 }
 
 function initGL() {
-    let prog = createProgram(gl, vertexShaderSource, fragmentShaderSource);
-    shProgram = new ShaderProgram('Basic', prog);
-    shProgram.use();
+    let program = createProgram(gl, vertexShaderSource, fragmentShaderSource);
+    shaderProgram = new ShaderProgram('Basic', program);
+    shaderProgram.use();
 
-    shProgram.iAttribVertex = gl.getAttribLocation(prog, "vertex");
-    shProgram.iAttribNormal = gl.getAttribLocation(prog, "normal");
-    shProgram.iModelViewProjectionMatrix = gl.getUniformLocation(prog, "ModelViewProjectionMatrix");
-    shProgram.iNormalMatrix = gl.getUniformLocation(prog, "NormalMatrix");
-    shProgram.iColor = gl.getUniformLocation(prog, "color");
-    shProgram.iLDir = gl.getUniformLocation(prog, "lDir");
-    shProgram.iLPos = gl.getUniformLocation(prog, "lPos");
-    shProgram.iLimit = gl.getUniformLocation(prog, "lim");
-    shProgram.iEasing = gl.getUniformLocation(prog, "eas");
+    shaderProgram.vertexAttrib = gl.getAttribLocation(program, "vertex");
+    shaderProgram.normalAttrib = gl.getAttribLocation(program, "normal");
+    shaderProgram.modelViewProjectionMatrixUniform = gl.getUniformLocation(program, "ModelViewProjectionMatrix");
+    shaderProgram.normalMatrixUniform = gl.getUniformLocation(program, "NormalMatrix");
+    shaderProgram.colorUniform = gl.getUniformLocation(program, "color");
+    shaderProgram.lightDirectionUniform = gl.getUniformLocation(program, "lDir");
+    shaderProgram.lightPositionUniform = gl.getUniformLocation(program, "lPos");
+    shaderProgram.limitUniform = gl.getUniformLocation(program, "lim");
+    shaderProgram.easingUniform = gl.getUniformLocation(program, "eas");
 
     surface = new Model('Surface');
     surface.bufferData(createSurfaceData()[0], createSurfaceData()[1]);
@@ -201,33 +201,33 @@ function initGL() {
     gl.enable(gl.DEPTH_TEST);
 }
 
-function createProgram(gl, vShader, fShader) {
-    let vsh = gl.createShader(gl.VERTEX_SHADER);
-    gl.shaderSource(vsh, vShader);
-    gl.compileShader(vsh);
+function createProgram(gl, vertexShader, fragmentShader) {
+    let vertexShaderObject = gl.createShader(gl.VERTEX_SHADER);
+    gl.shaderSource(vertexShaderObject, vertexShader);
+    gl.compileShader(vertexShaderObject);
 
-    if (!gl.getShaderParameter(vsh, gl.COMPILE_STATUS)) {
-        throw new Error("Error in vertex shader: " + gl.getShaderInfoLog(vsh));
+    if (!gl.getShaderParameter(vertexShaderObject, gl.COMPILE_STATUS)) {
+        throw new Error("Error in vertex shader: " + gl.getShaderInfoLog(vertexShaderObject));
     }
 
-    let fsh = gl.createShader(gl.FRAGMENT_SHADER);
-    gl.shaderSource(fsh, fShader);
-    gl.compileShader(fsh);
+    let fragmentShaderObject = gl.createShader(gl.FRAGMENT_SHADER);
+    gl.shaderSource(fragmentShaderObject, fragmentShader);
+    gl.compileShader(fragmentShaderObject);
 
-    if (!gl.getShaderParameter(fsh, gl.COMPILE_STATUS)) {
-        throw new Error("Error in fragment shader: " + gl.getShaderInfoLog(fsh));
+    if (!gl.getShaderParameter(fragmentShaderObject, gl.COMPILE_STATUS)) {
+        throw new Error("Error in fragment shader: " + gl.getShaderInfoLog(fragmentShaderObject));
     }
 
-    let prog = gl.createProgram();
-    gl.attachShader(prog, vsh);
-    gl.attachShader(prog, fsh);
-    gl.linkProgram(prog);
+    let programObject = gl.createProgram();
+    gl.attachShader(programObject, vertexShaderObject);
+    gl.attachShader(programObject, fragmentShaderObject);
+    gl.linkProgram(programObject);
 
-    if (!gl.getProgramParameter(prog, gl.LINK_STATUS)) {
-        throw new Error("Link error in program: " + gl.getProgramInfoLog(prog));
+    if (!gl.getProgramParameter(programObject, gl.LINK_STATUS)) {
+        throw new Error("Link error in program: " + gl.getProgramInfoLog(programObject));
     }
 
-    return prog;
+    return programObject;
 }
 
 function init() {
@@ -236,22 +236,22 @@ function init() {
         canvas = document.getElementById("webglcanvas");
         gl = canvas.getContext("webgl");
         if (!gl) {
-            throw "Браузер не поддерживает WebGL";
+            throw "The browser does not support WebGL";
         }
     } catch (e) {
         document.getElementById("canvas-holder").innerHTML =
-            "<p>Извините, не удалось получить контекст графики WebGL.</p>";
+            "<p>Sorry, unable to get WebGL graphics context.</p>";
         return;
     }
 
     try {
-        initGL(); 
+        initGL();
     } catch (e) {
         document.getElementById("canvas-holder").innerHTML =
-            "<p>Извините, не удалось инициализировать контекст графики WebGL: " + e + "</p>";
+            "<p>Sorry, failed to initialize WebGL graphics context: " + e + "</p>";
         return;
     }
 
     spaceball = new TrackballRotator(canvas, draw, 0);
-    drawe();
+    drawLoop();
 }
