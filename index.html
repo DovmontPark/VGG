@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+
+
+    <title>PA#3</title>
+    <style>
+        body {
+            background-color: #EEEEEE;
+        }
+
+        #canvas-holder {
+            float: left;
+            margin: 0 20px 0 0;
+        }
+    </style>
+
+    <script src="./Utils/trackball-rotator.js"></script>
+    <script src="./Utils/m4.js"></script>
+    <script src="./shader.gpu"></script>
+    <script src="./main.js"></script>
+
+</head>
+
+<body onload="init()">
+
+    <h2>A Cube with "Trackball" Mouse Rotation</h2>
+
+    <p id="message">Drag your mouse on the cube to rotate it.<br>
+        (On a touch screen, you can use your finger.)</p>
+    <label for="dx"hidden>dx</label>
+    <input type="range" name="dx" id="dx" min="-10" max="10" step="0.5" value="0"hidden>
+    <label for="dy"hidden>dy</label>
+    <input type="range" name="dy" id="dy" min="-10" max="10" step="0.5" value="0"hidden>
+    <label for="dz"hidden>dz</label>
+    <input type="range" name="dz" id="dz" min="-20" max="0" step="0.5" value="-10"hidden>
+    <label for="ease">ease</label>
+    <input type="range" name="ease" id="ease" min="0" max="0.5" step="0.01" value="1">
+    <label for="lim">lim</label>
+    <input type="range" name="lim" id="lim" min="45" max="50" step="0.1" value="1">
+    <label for="px">px</label>
+    <input type="range" name="px" id="px" min="-2" max="2" step="0.1" value="0">
+    <label for="pz"hidden>pz</label>
+    <input type="range" name="pz" id="pz" min="-40" max="0" step="0.5" value="-20"hidden>
+    <div class="main-container">
+        <div id="canvas-holder">
+            <canvas width="600" height="600" id="webglcanvas" style="background-color:red"></canvas>
+        </div>
+    </div>
+
+
+</body>
+
+</html>
