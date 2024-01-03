@@ -1,69 +1,69 @@
 'use strict';
 
-let gl;                         // The webgl context.
-let surface;                    // A surface model
-let shProgram;                  // A shader program
-let spaceball;                  // A SimpleRotator object that lets the user rotate the view by mouse.
+let glContext; // The WebGL context.
+let geometry;   // A geometry model
+let program;    // A shader program
+let rotator;    // A Rotator object that enables user interaction for rotating the view.
 
-function deg2rad(angle) {
-    return angle * Math.PI / 180;
+function toRadians(degrees) {
+    return degrees * Math.PI / 180;
 }
 
-class Model {
-    constructor(name) {
-        this.name = name;
-        this.iVertexBuffer = gl.createBuffer();
+class GeometryModel {
+    constructor(id) {
+        this.id = id;
+        this.buffer = glContext.createBuffer();
         this.count = 0;
     }
 
-    BufferData(vertices) {
-        gl.bindBuffer(gl.ARRAY_BUFFER, this.iVertexBuffer);
-        gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(vertices), gl.STREAM_DRAW);
+    setData(vertices) {
+        glContext.bindBuffer(glContext.ARRAY_BUFFER, this.buffer);
+        glContext.bufferData(glContext.ARRAY_BUFFER, new Float32Array(vertices), glContext.STREAM_DRAW);
         this.count = vertices.length / 3;
     }
 
-    Draw() {
-        gl.bindBuffer(gl.ARRAY_BUFFER, this.iVertexBuffer);
-        gl.vertexAttribPointer(shProgram.iAttribVertex, 3, gl.FLOAT, false, 0, 0);
-        gl.enableVertexAttribArray(shProgram.iAttribVertex);
-        gl.drawArrays(gl.LINE_STRIP, 0, this.count);
+    draw() {
+        glContext.bindBuffer(glContext.ARRAY_BUFFER, this.buffer);
+        glContext.vertexAttribPointer(program.vertexAttrib, 3, glContext.FLOAT, false, 0, 0);
+        glContext.enableVertexAttribArray(program.vertexAttrib);
+        glContext.drawArrays(glContext.LINE_STRIP, 0, this.count);
     }
 }
 
 class ShaderProgram {
-    constructor(name, program) {
-        this.name = name;
-        this.prog = program;
-        this.iAttribVertex = -1;
-        this.iColor = -1;
-        this.iModelViewProjectionMatrix = -1;
+    constructor(id, prog) {
+        this.id = id;
+        this.prog = prog;
+        this.vertexAttrib = -1;
+        this.colorUniform = -1;
+        this.modelViewProjectionMatrixUniform = -1;
     }
 
-    Use() {
-        gl.useProgram(this.prog);
+    use() {
+        glContext.useProgram(this.prog);
     }
 }
 
-function draw() {
-    gl.clearColor(0, 0, 0, 1);
-    gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+function render() {
+    glContext.clearColor(0, 0, 0, 1);
+    glContext.clear(glContext.COLOR_BUFFER_BIT | glContext.DEPTH_BUFFER_BIT);
 
-    let projection = m4.perspective(Math.PI / 8, 1, 8, 12);
-    let modelView = spaceball.getViewMatrix();
-    let rotateToPointZero = m4.axisRotation([0.707, 0.707, 0], 0.7);
-    let translateToPointZero = m4.translation(0, 0, -10);
-    let matAccum0 = m4.multiply(rotateToPointZero, modelView);
-    let matAccum1 = m4.multiply(translateToPointZero, matAccum0);
+    let projectionMatrix = m4.perspective(Math.PI / 8, 1, 8, 12);
+    let modelViewMatrix = rotator.getViewMatrix();
+    let rotateToZeroMatrix = m4.axisRotation([0.707, 0.707, 0], 0.7);
+    let translateToZeroMatrix = m4.translation(0, 0, -10);
+    let accumulatedMatrix0 = m4.multiply(rotateToZeroMatrix, modelViewMatrix);
+    let accumulatedMatrix1 = m4.multiply(translateToZeroMatrix, accumulatedMatrix0);
 
-    let modelViewProjection = m4.multiply(projection, matAccum1);
+    let modelViewProjectionMatrix = m4.multiply(projectionMatrix, accumulatedMatrix1);
 
-    gl.uniformMatrix4fv(shProgram.iModelViewProjectionMatrix, false, modelViewProjection);
-    gl.uniform4fv(shProgram.iColor, [1, 1, 0, 1]);
+    glContext.uniformMatrix4fv(program.modelViewProjectionMatrixUniform, false, modelViewProjectionMatrix);
+    glContext.uniform4fv(program.colorUniform, [1, 1, 0, 1]);
 
-    surface.Draw();
+    geometry.draw();
 }
 
-function CreateSurfaceData() {
+function createGeometryData() {
     let vertexList = [];
     let step = 0.03;
     let a = 1;
@@ -82,42 +82,42 @@ function CreateSurfaceData() {
     return vertexList;
 }
 
-function initGL() {
-    let prog = createProgram(gl, vertexShaderSource, fragmentShaderSource);
+function initializeGL() {
+    let prog = createShaderProgram(glContext, vertexShaderSource, fragmentShaderSource);
 
-    shProgram = new ShaderProgram('Basic', prog);
-    shProgram.Use();
+    program = new ShaderProgram('Basic', prog);
+    program.use();
 
-    shProgram.iAttribVertex = gl.getAttribLocation(prog, "vertex");
-    shProgram.iModelViewProjectionMatrix = gl.getUniformLocation(prog, "ModelViewProjectionMatrix");
-    shProgram.iColor = gl.getUniformLocation(prog, "color");
+    program.vertexAttrib = glContext.getAttribLocation(prog, "vertex");
+    program.modelViewProjectionMatrixUniform = glContext.getUniformLocation(prog, "ModelViewProjectionMatrix");
+    program.colorUniform = glContext.getUniformLocation(prog, "color");
 
-    surface = new Model('Surface');
-    surface.BufferData(CreateSurfaceData());
+    geometry = new GeometryModel('Geometry');
+    geometry.setData(createGeometryData());
 
-    gl.enable(gl.DEPTH_TEST);
+    glContext.enable(glContext.DEPTH_TEST);
 }
 
-function createProgram(gl, vShader, fShader) {
-    let vsh = gl.createShader(gl.VERTEX_SHADER);
-    gl.shaderSource(vsh, vShader);
-    gl.compileShader(vsh);
+function createShaderProgram(gl, vertexShaderSource, fragmentShaderSource) {
+    let vertexShader = gl.createShader(gl.VERTEX_SHADER);
+    gl.shaderSource(vertexShader, vertexShaderSource);
+    gl.compileShader(vertexShader);
 
-    if (!gl.getShaderParameter(vsh, gl.COMPILE_STATUS)) {
-        throw new Error("Error in vertex shader:  " + gl.getShaderInfoLog(vsh));
+    if (!gl.getShaderParameter(vertexShader, gl.COMPILE_STATUS)) {
+        throw new Error("Error in vertex shader:  " + gl.getShaderInfoLog(vertexShader));
     }
 
-    let fsh = gl.createShader(gl.FRAGMENT_SHADER);
-    gl.shaderSource(fsh, fShader);
-    gl.compileShader(fsh);
+    let fragmentShader = gl.createShader(gl.FRAGMENT_SHADER);
+    gl.shaderSource(fragmentShader, fragmentShaderSource);
+    gl.compileShader(fragmentShader);
 
-    if (!gl.getShaderParameter(fsh, gl.COMPILE_STATUS)) {
-        throw new Error("Error in fragment shader:  " + gl.getShaderInfoLog(fsh));
+    if (!gl.getShaderParameter(fragmentShader, gl.COMPILE_STATUS)) {
+        throw new Error("Error in fragment shader:  " + gl.getShaderInfoLog(fragmentShader));
     }
 
     let prog = gl.createProgram();
-    gl.attachShader(prog, vsh);
-    gl.attachShader(prog, fsh);
+    gl.attachShader(prog, vertexShader);
+    gl.attachShader(prog, fragmentShader);
     gl.linkProgram(prog);
 
     if (!gl.getProgramParameter(prog, gl.LINK_STATUS)) {
@@ -131,24 +131,25 @@ function init() {
     let canvas;
     try {
         canvas = document.getElementById("webglcanvas");
-        gl = canvas.getContext("webgl");
-        if (!gl) {
+        glContext = canvas.getContext("webgl");
+        if (!glContext) {
             throw "Browser does not support WebGL";
         }
-    } catch (e) {
+    } catch (error) {
         document.getElementById("canvas-holder").innerHTML =
-            "<p>Sorry, could not get a WebGL graphics context.</p>";
+            `<p>Sorry, could not get a WebGL graphics context.</p>`;
         return;
     }
 
     try {
-        initGL();
-    } catch (e) {
+        initializeGL();
+    } catch (error) {
         document.getElementById("canvas-holder").innerHTML =
-            "<p>Sorry, could not initialize the WebGL graphics context: " + e + "</p>";
+            `<p>Sorry, could not initialize the WebGL graphics context: ${error}</p>`;
         return;
     }
 
-    spaceball = new TrackballRotator(canvas, draw, 0);
-    draw();
+    rotator = new TrackballRotator(canvas, render, 0);
+    render();
 }
+
