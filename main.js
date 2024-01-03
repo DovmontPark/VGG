@@ -1,9 +1,9 @@
 'use strict';
 
-let gl;                 // The WebGL context.
-let surface;            // A surface model.
-let shProgram;          // A shader program.
-let spaceball;          // A SimpleRotator object that lets the user rotate the view by mouse.
+let gl;                 // Контекст WebGL.
+let surface;            // Модель поверхности.
+let shProgram;          // Шейдерная программа.
+let spaceball;          // Объект SimpleRotator для вращения вида с помощью мыши.
 
 function deg2rad(angle) {
     return angle * Math.PI / 180;
@@ -17,7 +17,7 @@ class Model {
         this.count = 0;
     }
 
-    BufferData(vertices, normals) {
+    bufferData(vertices, normals) {
         gl.bindBuffer(gl.ARRAY_BUFFER, this.iVertexBuffer);
         gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(vertices), gl.STREAM_DRAW);
 
@@ -27,7 +27,7 @@ class Model {
         this.count = vertices.length / 3;
     }
 
-    Draw() {
+    draw() {
         gl.bindBuffer(gl.ARRAY_BUFFER, this.iVertexBuffer);
         gl.vertexAttribPointer(shProgram.iAttribVertex, 3, gl.FLOAT, false, 0, 0);
         gl.enableVertexAttribArray(shProgram.iAttribVertex);
@@ -55,7 +55,7 @@ class ShaderProgram {
         this.iEasing = -1;
     }
 
-    Use() {
+    use() {
         gl.useProgram(this.prog);
     }
 }
@@ -93,7 +93,7 @@ function draw() {
     gl.uniform1f(shProgram.iLimit, parseFloat(document.getElementById('lim').value));
     gl.uniform1f(shProgram.iEasing, parseFloat(document.getElementById('ease').value));
 
-    surface.Draw();
+    surface.draw();
 }
 
 function drawe() {
@@ -101,7 +101,7 @@ function drawe() {
     window.requestAnimationFrame(drawe);
 }
 
-function CreateSurfaceData() {
+function createSurfaceData() {
     let vertexList = [];
     let normalList = [];
     let step = 0.03;
@@ -183,7 +183,7 @@ function CreateSurfaceData() {
 function initGL() {
     let prog = createProgram(gl, vertexShaderSource, fragmentShaderSource);
     shProgram = new ShaderProgram('Basic', prog);
-    shProgram.Use();
+    shProgram.use();
 
     shProgram.iAttribVertex = gl.getAttribLocation(prog, "vertex");
     shProgram.iAttribNormal = gl.getAttribLocation(prog, "normal");
@@ -196,7 +196,7 @@ function initGL() {
     shProgram.iEasing = gl.getUniformLocation(prog, "eas");
 
     surface = new Model('Surface');
-    surface.BufferData(CreateSurfaceData()[0], CreateSurfaceData()[1]);
+    surface.bufferData(createSurfaceData()[0], createSurfaceData()[1]);
 
     gl.enable(gl.DEPTH_TEST);
 }
@@ -236,19 +236,19 @@ function init() {
         canvas = document.getElementById("webglcanvas");
         gl = canvas.getContext("webgl");
         if (!gl) {
-            throw "Browser does not support WebGL";
+            throw "Браузер не поддерживает WebGL";
         }
     } catch (e) {
         document.getElementById("canvas-holder").innerHTML =
-            "<p>Sorry, could not get a WebGL graphics context.</p>";
+            "<p>Извините, не удалось получить контекст графики WebGL.</p>";
         return;
     }
 
     try {
-        initGL();  // Initialize the WebGL graphics context.
+        initGL();  // Инициализация контекста графики WebGL.
     } catch (e) {
         document.getElementById("canvas-holder").innerHTML =
-            "<p>Sorry, could not initialize the WebGL graphics context: " + e + "</p>";
+            "<p>Извините, не удалось инициализировать контекст графики WebGL: " + e + "</p>";
         return;
     }
 
