@@ -1,9 +1,9 @@
 'use strict';
 
-let gl;                 // Контекст WebGL.
-let surface;            // Модель поверхности.
-let shProgram;          // Шейдерная программа.
-let spaceball;          // Объект SimpleRotator для вращения вида с помощью мыши.
+let gl;                 
+let surface;            
+let shProgram;          
+let spaceball;          
 
 function deg2rad(angle) {
     return angle * Math.PI / 180;
@@ -245,7 +245,7 @@ function init() {
     }
 
     try {
-        initGL();  // Инициализация контекста графики WebGL.
+        initGL(); 
     } catch (e) {
         document.getElementById("canvas-holder").innerHTML =
             "<p>Извините, не удалось инициализировать контекст графики WebGL: " + e + "</p>";
