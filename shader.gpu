@@ -1,0 +1,62 @@
+
+
+// Vertex shader
+const vertexShaderSource = `
+attribute vec3 vertex;
+attribute vec3 normal;
+uniform mat4 ModelViewProjectionMatrix;
+uniform mat4 NormalMatrix;
+varying vec3 toV;
+varying vec3 toL;
+varying vec3 normale;
+
+uniform vec3 lPos;
+varying vec3 lPose;
+
+void main() {
+    toV = mat3(ModelViewProjectionMatrix)*-vertex;
+    lPose = mat3(ModelViewProjectionMatrix)*lPos;
+    toL = lPose-mat3(ModelViewProjectionMatrix)*vertex;
+    normale = mat3(NormalMatrix)*-normal;
+    
+    gl_Position = ModelViewProjectionMatrix * vec4(vertex,1.0);
+}`;
+
+
+// Fragment shader
+const fragmentShaderSource = `
+#ifdef GL_FRAGMENT_PRECISION_HIGH
+   precision highp float;
+#else
+   precision mediump float;
+#endif
+
+uniform vec4 color;
+varying vec3 toV;
+varying vec3 toL;
+varying vec3 normale;
+uniform vec3 lDir;
+varying vec3 lPose;
+uniform float lim;
+uniform float eas;
+void main() {
+    vec3 n = normale;
+    vec3 tv = toV;
+    vec3 tl = toL;
+    vec3 halfVector = normalize(tl + tv);
+    float inDir = dot(tl,-normalize(lDir));
+    float inLim = smoothstep(lim,lim+eas, inDir);
+    float light = inLim * dot(n, tl);
+    float spec = inLim * pow(dot(n, halfVector), 80.0);
+    gl_FragColor = color;
+
+    // Lets multiply just the color portion (not the alpha)
+    // by the light
+    gl_FragColor.rgb *= light*0.05;
+
+    // Just add in the specular
+    //gl_FragColor.rgb += spec;
+    if(gl_FragColor.r<0.2){
+        gl_FragColor.rgb = vec3(color)*0.1;
+    }
+}`;
