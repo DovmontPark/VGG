@@ -1,71 +1,71 @@
 'use strict';
 
-let gl;
-let surface;
-let shaderProgram;
-let spaceball;
+let webgl;
+let object;
+let program;
+let orb;
 
-function degreesToRadians(angle) {
-    return angle * Math.PI / 180;
+function radiansToDegrees(angle) {
+    return angle * 180 / Math.PI;
 }
 
-class Model {
-    constructor(name) {
-        this.name = name;
-        this.vertexBuffer = gl.createBuffer();
-        this.normalBuffer = gl.createBuffer();
+class Entity {
+    constructor(identifier) {
+        this.identifier = identifier;
+        this.vertexBuffer = webgl.createBuffer();
+        this.normalBuffer = webgl.createBuffer();
         this.count = 0;
     }
 
-    bufferData(vertices, normals) {
-        gl.bindBuffer(gl.ARRAY_BUFFER, this.vertexBuffer);
-        gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(vertices), gl.STREAM_DRAW);
+    loadBufferData(vertices, normals) {
+        webgl.bindBuffer(webgl.ARRAY_BUFFER, this.vertexBuffer);
+        webgl.bufferData(webgl.ARRAY_BUFFER, new Float32Array(vertices), webgl.STREAM_DRAW);
 
-        gl.bindBuffer(gl.ARRAY_BUFFER, this.normalBuffer);
-        gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(normals), gl.STREAM_DRAW);
+        webgl.bindBuffer(webgl.ARRAY_BUFFER, this.normalBuffer);
+        webgl.bufferData(webgl.ARRAY_BUFFER, new Float32Array(normals), webgl.STREAM_DRAW);
 
         this.count = vertices.length / 3;
     }
 
-    draw() {
-        gl.bindBuffer(gl.ARRAY_BUFFER, this.vertexBuffer);
-        gl.vertexAttribPointer(shaderProgram.vertexAttrib, 3, gl.FLOAT, false, 0, 0);
-        gl.enableVertexAttribArray(shaderProgram.vertexAttrib);
+    render() {
+        webgl.bindBuffer(webgl.ARRAY_BUFFER, this.vertexBuffer);
+        webgl.vertexAttribPointer(program.vertexAttrib, 3, webgl.FLOAT, false, 0, 0);
+        webgl.enableVertexAttribArray(program.vertexAttrib);
 
-        gl.bindBuffer(gl.ARRAY_BUFFER, this.normalBuffer);
-        gl.vertexAttribPointer(shaderProgram.normalAttrib, 3, gl.FLOAT, true, 0, 0);
-        gl.enableVertexAttribArray(shaderProgram.normalAttrib);
+        webgl.bindBuffer(webgl.ARRAY_BUFFER, this.normalBuffer);
+        webgl.vertexAttribPointer(program.normalAttrib, 3, webgl.FLOAT, true, 0, 0);
+        webgl.enableVertexAttribArray(program.normalAttrib);
 
-        gl.drawArrays(gl.TRIANGLES, 0, this.count);
+        webgl.drawArrays(webgl.TRIANGLES, 0, this.count);
     }
 }
 
 class ShaderProgram {
-    constructor(name, program) {
-        this.name = name;
-        this.program = program;
+    constructor(identifier, programObject) {
+        this.identifier = identifier;
+        this.programObject = programObject;
         this.vertexAttrib = -1;
         this.normalAttrib = -1;
         this.colorUniform = -1;
-        this.modelViewProjectionMatrixUniform = -1;
+        this.mvpMatrixUniform = -1;
         this.normalMatrixUniform = -1;
-        this.lightDirectionUniform = -1;
-        this.lightPositionUniform = -1;
+        this.lightDirUniform = -1;
+        this.lightPosUniform = -1;
         this.limitUniform = -1;
         this.easingUniform = -1;
     }
 
-    use() {
-        gl.useProgram(this.program);
+    apply() {
+        webgl.useProgram(this.programObject);
     }
 }
 
-function draw() {
-    gl.clearColor(0, 0, 0, 1);
-    gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+function render() {
+    webgl.clearColor(0, 0, 0, 1);
+    webgl.clear(webgl.COLOR_BUFFER_BIT | webgl.DEPTH_BUFFER_BIT);
 
     let projectionMatrix = m4.perspective(Math.PI / 8, 1, 8, 20);
-    let modelViewMatrix = spaceball.getViewMatrix();
+    let modelViewMatrix = orb.getViewMatrix();
     let rotateToPointZero = m4.axisRotation([0.707, 0.707, 0], 0.0);
     let translateToPointZero = m4.translation(0, 0, -10);
 
@@ -77,10 +77,10 @@ function draw() {
     m4.inverse(modelViewMatrix, normalMatrix);
     m4.transpose(normalMatrix, normalMatrix);
 
-    gl.uniformMatrix4fv(shaderProgram.normalMatrixUniform, false, normalMatrix);
-    gl.uniformMatrix4fv(shaderProgram.modelViewProjectionMatrixUniform, false, modelViewProjectionMatrix);
+    webgl.uniformMatrix4fv(program.normalMatrixUniform, false, normalMatrix);
+    webgl.uniformMatrix4fv(program.mvpMatrixUniform, false, modelViewProjectionMatrix);
 
-    gl.uniform4fv(shaderProgram.colorUniform, [1, 1, 0, 1]);
+    webgl.uniform4fv(program.colorUniform, [1, 1, 0, 1]);
     let dx = parseFloat(document.getElementById('dx').value);
     let dy = parseFloat(document.getElementById('dy').value);
     let dz = parseFloat(document.getElementById('dz').value);
@@ -88,20 +88,20 @@ function draw() {
     let py = parseFloat(document.getElementById('py').value);
     let pz = parseFloat(document.getElementById('pz').value);
 
-    gl.uniform3fv(shaderProgram.lightDirectionUniform, [dx, dy, dz]);
-    gl.uniform3fv(shaderProgram.lightPositionUniform, [px, py, pz]);
-    gl.uniform1f(shaderProgram.limitUniform, parseFloat(document.getElementById('lim').value));
-    gl.uniform1f(shaderProgram.easingUniform, parseFloat(document.getElementById('ease').value));
+    webgl.uniform3fv(program.lightDirUniform, [dx, dy, dz]);
+    webgl.uniform3fv(program.lightPosUniform, [px, py, pz]);
+    webgl.uniform1f(program.limitUniform, parseFloat(document.getElementById('lim').value));
+    webgl.uniform1f(program.easingUniform, parseFloat(document.getElementById('ease').value));
 
-    surface.draw();
+    object.render();
 }
 
-function drawLoop() {
-    draw();
-    window.requestAnimationFrame(drawLoop);
+function renderLoop() {
+    render();
+    window.requestAnimationFrame(renderLoop);
 }
 
-function createSurfaceData() {
+function generateObjectData() {
     let vertexList = [];
     let normalList = [];
     let step = 0.03;
@@ -181,24 +181,24 @@ function createSurfaceData() {
 }
 
 function initGL() {
-    let program = createProgram(gl, vertexShaderSource, fragmentShaderSource);
-    shaderProgram = new ShaderProgram('Basic', program);
-    shaderProgram.use();
+    let programObject = createProgram(webgl, vertexShaderSource, fragmentShaderSource);
+    program = new ShaderProgram('Basic', programObject);
+    program.apply();
 
-    shaderProgram.vertexAttrib = gl.getAttribLocation(program, "vertex");
-    shaderProgram.normalAttrib = gl.getAttribLocation(program, "normal");
-    shaderProgram.modelViewProjectionMatrixUniform = gl.getUniformLocation(program, "ModelViewProjectionMatrix");
-    shaderProgram.normalMatrixUniform = gl.getUniformLocation(program, "NormalMatrix");
-    shaderProgram.colorUniform = gl.getUniformLocation(program, "color");
-    shaderProgram.lightDirectionUniform = gl.getUniformLocation(program, "lDir");
-    shaderProgram.lightPositionUniform = gl.getUniformLocation(program, "lPos");
-    shaderProgram.limitUniform = gl.getUniformLocation(program, "lim");
-    shaderProgram.easingUniform = gl.getUniformLocation(program, "eas");
+    program.vertexAttrib = webgl.getAttribLocation(programObject, "vertex");
+    program.normalAttrib = webgl.getAttribLocation(programObject, "normal");
+    program.mvpMatrixUniform = webgl.getUniformLocation(programObject, "ModelViewProjectionMatrix");
+    program.normalMatrixUniform = webgl.getUniformLocation(programObject, "NormalMatrix");
+    program.colorUniform = webgl.getUniformLocation(programObject, "color");
+    program.lightDirUniform = webgl.getUniformLocation(programObject, "lDir");
+    program.lightPosUniform = webgl.getUniformLocation(programObject, "lPos");
+    program.limitUniform = webgl.getUniformLocation(programObject, "lim");
+    program.easingUniform = webgl.getUniformLocation(programObject, "eas");
 
-    surface = new Model('Surface');
-    surface.bufferData(createSurfaceData()[0], createSurfaceData()[1]);
+    object = new Entity('Surface');
+    object.loadBufferData(generateObjectData()[0], generateObjectData()[1]);
 
-    gl.enable(gl.DEPTH_TEST);
+    webgl.enable(webgl.DEPTH_TEST);
 }
 
 function createProgram(gl, vertexShader, fragmentShader) {
@@ -234,8 +234,8 @@ function init() {
     let canvas;
     try {
         canvas = document.getElementById("webglcanvas");
-        gl = canvas.getContext("webgl");
-        if (!gl) {
+        webgl = canvas.getContext("webgl");
+        if (!webgl) {
             throw "The browser does not support WebGL";
         }
     } catch (e) {
@@ -252,6 +252,6 @@ function init() {
         return;
     }
 
-    spaceball = new TrackballRotator(canvas, draw, 0);
-    drawLoop();
+    orb = new TrackballRotator(canvas, render, 0);
+    renderLoop();
 }
