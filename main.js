@@ -1,9 +1,9 @@
 'use strict';
 
-let glContext; // The WebGL context.
-let geometry;   // A geometry model
-let program;    // A shader program
-let rotator;    // A Rotator object that enables user interaction for rotating the view.
+let glContext; 
+let geometry;   
+let program;    
+let rotator;    
 
 function toRadians(degrees) {
     return degrees * Math.PI / 180;
@@ -68,19 +68,20 @@ function createGeometryData() {
     let step = 0.03;
     let a = 1;
     let r = 1;
-    let theta = 0;
 
     for (let u = -Math.PI; u <= Math.PI; u += step) {
         for (let v = 0; v <= 2 * Math.PI; v += step) {
-            let x = (r + a * Math.pow(Math.cos(u), 3) * Math.cos(theta) - a * Math.pow(Math.sin(u), 3) * Math.sin(theta)) * Math.cos(v);
-            let y = (r + a * Math.pow(Math.cos(u), 3) * Math.cos(theta) - a * Math.pow(Math.sin(u), 3) * Math.sin(theta)) * Math.sin(v);
-            let z = a * Math.pow(Math.cos(u), 3) * Math.sin(theta) + a * Math.pow(Math.sin(u), 3) * Math.cos(theta);
+            let x = (2 + a * Math.cos(v)) * Math.cos(u);
+            let y = (2 + a * Math.cos(v)) * Math.sin(u);
+            let z = a * Math.sin(v) + a * Math.sin(2 * v) * Math.sin(u);
+
             vertexList.push(x, y, z);
         }
     }
 
     return vertexList;
 }
+
 
 function initializeGL() {
     let prog = createShaderProgram(glContext, vertexShaderSource, fragmentShaderSource);
@@ -92,11 +93,17 @@ function initializeGL() {
     program.modelViewProjectionMatrixUniform = glContext.getUniformLocation(prog, "ModelViewProjectionMatrix");
     program.colorUniform = glContext.getUniformLocation(prog, "color");
 
+    let a = 0.2; 
+    let r = 1;
+    let stepU = 0.1;
+    let stepV = 0.1;
+    
     geometry = new GeometryModel('Geometry');
-    geometry.setData(createGeometryData());
+    geometry.setData(createGeometryData(a, r, stepU, stepV));
 
     glContext.enable(glContext.DEPTH_TEST);
 }
+
 
 function createShaderProgram(gl, vertexShaderSource, fragmentShaderSource) {
     let vertexShader = gl.createShader(gl.VERTEX_SHADER);
@@ -152,4 +159,3 @@ function init() {
     rotator = new TrackballRotator(canvas, render, 0);
     render();
 }
-
