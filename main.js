@@ -68,20 +68,19 @@ function createGeometryData() {
     let step = 0.03;
     let a = 1;
     let r = 1;
+    let theta = 0;
 
     for (let u = -Math.PI; u <= Math.PI; u += step) {
         for (let v = 0; v <= 2 * Math.PI; v += step) {
-            let x = (2 + a * Math.cos(v)) * Math.cos(u);
-            let y = (2 + a * Math.cos(v)) * Math.sin(u);
-            let z = a * Math.sin(v) + a * Math.sin(2 * v) * Math.sin(u);
-
+            let x = (r + a * Math.pow(Math.cos(u), 3) * Math.cos(theta) - a * Math.pow(Math.sin(u), 3) * Math.sin(theta)) * Math.cos(v);
+            let y = (r + a * Math.pow(Math.cos(u), 3) * Math.cos(theta) - a * Math.pow(Math.sin(u), 3) * Math.sin(theta)) * Math.sin(v);
+            let z = a * Math.pow(Math.cos(u), 3) * Math.sin(theta) + a * Math.pow(Math.sin(u), 3) * Math.cos(theta);
             vertexList.push(x, y, z);
         }
     }
 
     return vertexList;
 }
-
 
 function initializeGL() {
     let prog = createShaderProgram(glContext, vertexShaderSource, fragmentShaderSource);
