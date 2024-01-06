@@ -1,0 +1,121 @@
+
+
+// Vertex shader
+const vertexShaderSource = `
+attribute vec3 vertex;
+attribute vec3 normal;
+attribute vec2 texture;
+uniform mat4 ModelViewProjectionMatrix;
+uniform mat4 NormalMatrix;
+varying vec3 toV;
+varying vec3 toL;
+varying vec3 normale;
+
+uniform vec3 lPos;
+uniform vec2 tt;
+varying vec3 lPose;
+varying vec2 vt;
+uniform float eas;
+mat4 translation(vec3 t) {
+    mat4 dst;
+
+    dst[0][0] = 1.0;
+    dst[0][ 1] = 0.0;
+    dst[0][ 2] = 0.0;
+    dst[0][ 3] = 0.0;
+    dst[1][ 0] = 0.0;
+    dst[1][ 1] = 1.0;
+    dst[1][ 2] = 0.0;
+    dst[1][ 3] = 0.0;
+    dst[2][ 0] = 0.0;
+    dst[2][ 1] = 0.0;
+    dst[2][ 2] = 1.0;
+    dst[2][ 3] = 0.0;
+    dst[3][ 0] = t.x;
+    dst[3][ 1] = t.y;
+    dst[3][ 2] = t.z;
+    dst[3][ 3] = 1.0;
+
+    return dst;
+}
+
+mat4 scaling(float s){
+    mat4 dst;
+
+    dst[0][0] = s;
+    dst[0][ 1] = 0.0;
+    dst[0][ 2] = 0.0;
+    dst[0][ 3] = 0.0;
+    dst[1][ 0] = 0.0;
+    dst[1][ 1] = s;
+    dst[1][ 2] = 0.0;
+    dst[1][ 3] = 0.0;
+    dst[2][ 0] = 0.0;
+    dst[2][ 1] = 0.0;
+    dst[2][ 2] = s;
+    dst[2][ 3] = 0.0;
+    dst[3][ 0] = 0.0;
+    dst[3][ 1] = 0.0;
+    dst[3][ 2] = 0.0;
+    dst[3][ 3] = 1.0;
+
+    return dst;
+}
+
+
+void main() {
+    vec4 textureMod = translation(vec3(-tt,0.0))*vec4(texture,0.,1.);
+    vec4 textureModd = scaling(eas)*textureMod;
+    vec4 textureModdd = translation(vec3(tt,0.0))*textureModd;
+    vt = textureModdd.rg;
+    toV = mat3(ModelViewProjectionMatrix)*-vertex;
+    lPose = mat3(ModelViewProjectionMatrix)*lPos;
+    toL = lPose-mat3(ModelViewProjectionMatrix)*vertex;
+    normale = mat3(NormalMatrix)*-normal;
+    gl_Position = ModelViewProjectionMatrix * vec4(vertex,1.0);
+}`;
+
+
+// Fragment shader
+const fragmentShaderSource = `
+#ifdef GL_FRAGMENT_PRECISION_HIGH
+   precision highp float;
+#else
+   precision mediump float;
+#endif
+
+uniform vec4 color;
+varying vec3 toV;
+varying vec3 toL;
+varying vec3 normale;
+uniform vec3 lDir;
+varying vec3 lPose;
+uniform float lim;
+uniform float eas;
+varying vec2 vt;
+uniform sampler2D tmu;
+void main() {
+    vec3 n = normale;
+    vec3 tv = toV;
+    vec3 tl = toL;
+    vec3 halfVector = normalize(tl + tv);
+    float inDir = dot(tl,-normalize(lDir));
+    float inLim = smoothstep(lim,lim+eas, inDir);
+    float light = inLim * dot(n, tl);
+    float spec = inLim * pow(dot(n, halfVector), 80.0);
+    gl_FragColor = color;
+
+    // Lets multiply just the color portion (not the alpha)
+    // by the light
+    gl_FragColor.rgb *= light*0.05;
+
+    // Just add in the specular
+    //gl_FragColor.rgb += spec;
+    gl_FragColor = texture2D(tmu,vt);
+    if(gl_FragColor.r<0.2){
+        gl_FragColor.rgb = vec3(color)*0.1;
+    }
+    if(lim<-50.0){
+        gl_FragColor=vec4(1.0);
+    }
+}`;
